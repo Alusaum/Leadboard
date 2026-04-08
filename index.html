@@ -1,0 +1,429 @@
+
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  .app { min-height: 100vh; background: #0a0a0f; color: #fff; overflow: hidden; }
+  .header { display: flex; align-items: center; justify-content: space-between; padding: 18px 32px; border-bottom: 0.5px solid rgba(255,255,255,0.08); }
+  .header-left { display: flex; align-items: center; gap: 14px; }
+  .logo-dot { width: 10px; height: 10px; border-radius: 50%; background: #c9a84c; }
+  .header-title { font-size: 15px; font-weight: 500; color: rgba(255,255,255,0.9); letter-spacing: 0.5px; }
+  .header-sub { font-size: 12px; color: rgba(255,255,255,0.35); margin-top: 2px; }
+  .header-right { display: flex; align-items: center; gap: 12px; }
+  .live-badge { display: flex; align-items: center; gap: 6px; background: rgba(34,197,94,0.12); border: 0.5px solid rgba(34,197,94,0.3); border-radius: 20px; padding: 5px 12px; font-size: 11px; color: #22c55e; }
+  .live-dot { width: 6px; height: 6px; border-radius: 50%; background: #22c55e; animation: pulse 1.5s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+  .btn-config { background: rgba(255,255,255,0.06); border: 0.5px solid rgba(255,255,255,0.12); color: rgba(255,255,255,0.7); padding: 7px 14px; border-radius: 8px; font-size: 12px; cursor: pointer; transition: all 0.2s; }
+  .btn-config:hover { background: rgba(255,255,255,0.1); }
+  .btn-sheet { background: rgba(201,168,76,0.12); border: 0.5px solid rgba(201,168,76,0.3); color: #c9a84c; padding: 7px 14px; border-radius: 8px; font-size: 12px; cursor: pointer; transition: all 0.2s; }
+  .btn-sheet:hover { background: rgba(201,168,76,0.2); }
+  .carousel { position: relative; width: 100%; overflow: hidden; }
+  .slides-wrapper { display: flex; transition: transform 0.8s cubic-bezier(0.4,0,0.2,1); }
+  .slide { min-width: 100%; padding: 32px 32px 24px; }
+  .slide-header { margin-bottom: 28px; }
+  .slide-category { font-size: 11px; color: rgba(255,255,255,0.35); letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 6px; }
+  .slide-title { font-size: 26px; font-weight: 500; color: rgba(255,255,255,0.95); }
+  .podium { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+  .podium-card { border-radius: 14px; padding: 22px 18px; position: relative; overflow: hidden; text-align: center; }
+  .podium-card.rank-1 { background: linear-gradient(135deg, #1a1508 0%, #2a200a 100%); border: 0.5px solid rgba(201,168,76,0.4); order: 2; }
+  .podium-card.rank-2 { background: linear-gradient(135deg, #0e1217 0%, #161c22 100%); border: 0.5px solid rgba(148,163,184,0.25); order: 1; margin-top: 24px; }
+  .podium-card.rank-3 { background: linear-gradient(135deg, #130e08 0%, #1e1510 100%); border: 0.5px solid rgba(180,120,60,0.25); order: 3; margin-top: 24px; }
+  .rank-number { position: absolute; top: 12px; right: 14px; font-size: 11px; font-weight: 500; }
+  .rank-1 .rank-number { color: #c9a84c; }
+  .rank-2 .rank-number { color: #94a3b8; }
+  .rank-3 .rank-number { color: #b47c3c; }
+  .rank-avatar { width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 500; margin: 0 auto 12px; }
+  .rank-1 .rank-avatar { background: rgba(201,168,76,0.18); color: #c9a84c; border: 1.5px solid rgba(201,168,76,0.4); }
+  .rank-2 .rank-avatar { background: rgba(148,163,184,0.12); color: #94a3b8; border: 1.5px solid rgba(148,163,184,0.3); }
+  .rank-3 .rank-avatar { background: rgba(180,120,60,0.12); color: #b47c3c; border: 1.5px solid rgba(180,120,60,0.3); }
+  .rank-name { font-size: 14px; font-weight: 500; color: rgba(255,255,255,0.9); margin-bottom: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .rank-value { font-size: 20px; font-weight: 500; }
+  .rank-1 .rank-value { color: #c9a84c; }
+  .rank-2 .rank-value { color: #94a3b8; }
+  .rank-3 .rank-value { color: #b47c3c; }
+  .rank-label { font-size: 11px; color: rgba(255,255,255,0.35); margin-top: 3px; }
+  .progress-card { background: rgba(255,255,255,0.03); border: 0.5px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 24px 28px; }
+  .progress-row { margin-bottom: 24px; }
+  .progress-row:last-child { margin-bottom: 0; }
+  .progress-info { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px; }
+  .progress-label { font-size: 14px; color: rgba(255,255,255,0.7); font-weight: 500; }
+  .progress-values { font-size: 13px; color: rgba(255,255,255,0.45); }
+  .progress-pct { font-size: 18px; font-weight: 500; }
+  .progress-pct.gold { color: #c9a84c; }
+  .progress-pct.blue { color: #60a5fa; }
+  .progress-track { height: 8px; background: rgba(255,255,255,0.06); border-radius: 100px; overflow: hidden; }
+  .progress-fill { height: 100%; border-radius: 100px; transition: width 1s ease; }
+  .progress-fill.gold { background: linear-gradient(90deg, #b8890e, #e2b84a); }
+  .progress-fill.blue { background: linear-gradient(90deg, #2563eb, #60a5fa); }
+  .dots { display: flex; justify-content: center; gap: 6px; padding: 16px 0; }
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,0.15); transition: all 0.3s; cursor: pointer; }
+  .dot.active { background: #c9a84c; width: 20px; border-radius: 3px; }
+  .ticker { background: rgba(255,255,255,0.03); border-top: 0.5px solid rgba(255,255,255,0.06); padding: 10px 32px; font-size: 12px; color: rgba(255,255,255,0.35); display: flex; align-items: center; gap: 8px; }
+  .ticker-label { color: rgba(201,168,76,0.7); font-weight: 500; white-space: nowrap; }
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 100; opacity: 0; pointer-events: none; transition: opacity 0.2s; }
+  .modal-overlay.open { opacity: 1; pointer-events: all; }
+  .modal { background: #13131a; border: 0.5px solid rgba(255,255,255,0.12); border-radius: 16px; padding: 28px; width: 460px; max-width: 92vw; }
+  .modal-title { font-size: 17px; font-weight: 500; color: rgba(255,255,255,0.9); margin-bottom: 6px; }
+  .modal-desc { font-size: 12px; color: rgba(255,255,255,0.35); margin-bottom: 20px; line-height: 1.6; }
+  .modal-field { margin-bottom: 16px; }
+  .modal-field label { display: block; font-size: 12px; color: rgba(255,255,255,0.45); margin-bottom: 6px; }
+  .modal-field input { width: 100%; background: rgba(255,255,255,0.05); border: 0.5px solid rgba(255,255,255,0.12); border-radius: 8px; padding: 10px 14px; color: rgba(255,255,255,0.9); font-size: 13px; font-family: monospace; outline: none; transition: border 0.2s; }
+  .modal-field input:focus { border-color: rgba(201,168,76,0.4); }
+  .hint-box { background: rgba(201,168,76,0.06); border: 0.5px solid rgba(201,168,76,0.2); border-radius: 8px; padding: 12px 14px; margin-bottom: 16px; }
+  .hint-step { font-size: 12px; color: rgba(255,255,255,0.5); line-height: 1.9; }
+  .hint-step strong { color: rgba(201,168,76,0.8); font-weight: 500; }
+  .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
+  .btn-save { flex: 1; background: #c9a84c; border: none; color: #0a0a0f; padding: 10px; border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer; }
+  .btn-save:hover { background: #e2b84a; }
+  .btn-cancel { background: rgba(255,255,255,0.05); border: 0.5px solid rgba(255,255,255,0.1); color: rgba(255,255,255,0.6); padding: 10px 16px; border-radius: 8px; font-size: 13px; cursor: pointer; }
+  .status-bar { margin-top: 10px; font-size: 11px; padding: 8px 12px; border-radius: 6px; }
+  .status-bar.ok { background: rgba(34,197,94,0.1); color: #22c55e; }
+  .status-bar.err { background: rgba(239,68,68,0.1); color: #ef4444; }
+  .status-bar.loading { background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.4); }
+  .empty-state { grid-column: 1/-1; text-align: center; color: rgba(255,255,255,0.25); padding: 48px 0; font-size: 13px; line-height: 2; }
+</style>
+
+<div class="app">
+  <div class="header">
+    <div class="header-left">
+      <div class="logo-dot"></div>
+      <div>
+        <div class="header-title">Comercial — Ranking</div>
+        <div class="header-sub" id="last-update">Aguardando dados...</div>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="live-badge"><div class="live-dot"></div> Ao vivo</div>
+      <button class="btn-sheet" onclick="openSheetModal()">Planilha</button>
+      <button class="btn-config" onclick="openMetaModal()">Metas</button>
+    </div>
+  </div>
+
+  <div class="carousel">
+    <div class="slides-wrapper" id="slides">
+      <div class="slide">
+        <div class="slide-header">
+          <div class="slide-category">Ranking Mensal</div>
+          <div class="slide-title">Top Vendedores</div>
+        </div>
+        <div class="podium" id="podium-vendas"></div>
+      </div>
+      <div class="slide">
+        <div class="slide-header">
+          <div class="slide-category">Ranking Páscoa</div>
+          <div class="slide-title">Maiores Entradas</div>
+        </div>
+        <div class="podium" id="podium-entradas"></div>
+      </div>
+      <div class="slide">
+        <div class="slide-header">
+          <div class="slide-category">Ranking Campanha Mensal</div>
+          <div class="slide-title">Top Equipes</div>
+        </div>
+        <div class="podium" id="podium-equipes"></div>
+      </div>
+      <div class="slide">
+        <div class="slide-header">
+          <div class="slide-category">Performance</div>
+          <div class="slide-title">Progresso das Metas</div>
+        </div>
+        <div class="progress-card" id="progress-card"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="dots" id="dots">
+    <div class="dot active" onclick="goTo(0)"></div>
+    <div class="dot" onclick="goTo(1)"></div>
+    <div class="dot" onclick="goTo(2)"></div>
+    <div class="dot" onclick="goTo(3)"></div>
+  </div>
+
+  <div class="ticker">
+    <span class="ticker-label">DESTAQUES</span>
+    <span id="ticker-text">Configure a planilha para ver dados em tempo real</span>
+  </div>
+</div>
+
+<!-- Modal Planilha CSV -->
+<div class="modal-overlay" id="sheet-modal">
+  <div class="modal">
+    <div class="modal-title">Conectar planilha — 100% gratuito</div>
+    <div class="modal-desc">Sem API Key, sem cadastro. Basta publicar como CSV.</div>
+    <div class="hint-box">
+      <div class="hint-step">1. Abra sua planilha no Google Sheets</div>
+      <div class="hint-step">2. <strong>Arquivo → Compartilhar → Publicar na web</strong></div>
+      <div class="hint-step">3. Selecione a aba <strong>Ranking</strong> e formato <strong>CSV</strong></div>
+      <div class="hint-step">4. Clique em <strong>Publicar</strong> e copie o link gerado</div>
+      <div class="hint-step">5. Cole o link abaixo e clique em Conectar</div>
+    </div>
+    <div class="modal-field">
+      <label>Link CSV da planilha publicada</label>
+      <input type="text" id="csv-url" placeholder="https://docs.google.com/spreadsheets/d/.../pub?output=csv">
+    </div>
+    <div id="sheet-status"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeSheetModal()">Cancelar</button>
+      <button class="btn-save" onclick="saveSheet()">Conectar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Metas -->
+<div class="modal-overlay" id="meta-modal">
+  <div class="modal">
+    <div class="modal-title">Definir Metas</div>
+    <div class="modal-desc">Os valores são salvos no navegador e persistem entre sessões.</div>
+    <div class="modal-field">
+      <label>Meta de Vendas (R$)</label>
+      <input type="number" id="meta-vendas" placeholder="Ex: 300000">
+    </div>
+    <div class="modal-field">
+      <label>Meta de Entradas (R$)</label>
+      <input type="number" id="meta-entradas" placeholder="Ex: 60000">
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeMetaModal()">Cancelar</button>
+      <button class="btn-save" onclick="saveMetas()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let currentSlide = 0;
+let autoTimer = null;
+let refreshTimer = null;
+let metas = { vendas: 300000, entradas: 60000 };
+let csvUrl = '';
+let lastData = null;
+
+function load() {
+  try {
+    const m = localStorage.getItem('adv_metas');
+    if (m) metas = JSON.parse(m);
+    csvUrl = localStorage.getItem('adv_csv') || '';
+    document.getElementById('meta-vendas').value = metas.vendas;
+    document.getElementById('meta-entradas').value = metas.entradas;
+    document.getElementById('csv-url').value = csvUrl;
+  } catch(e) {}
+}
+
+function getInitials(name) {
+  if (!name) return '?';
+  const p = name.trim().split(' ');
+  return p.length >= 2 ? (p[0][0]+p[1][0]).toUpperCase() : name.substring(0,2).toUpperCase();
+}
+
+function formatBRL(val) {
+  if (!val && val !== 0) return 'R$ —';
+  return new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL',maximumFractionDigits:0}).format(val);
+}
+
+function parseBRL(str) {
+  if (!str || str === '#N/D' || str === '' || str === '-') return 0;
+  const c = String(str).replace(/R\$\s?/g,'').replace(/\./g,'').replace(',','.').trim();
+  const n = parseFloat(c);
+  return isNaN(n) ? 0 : n;
+}
+
+function parseCSV(text) {
+  const lines = text.trim().split('\n');
+  return lines.map(line => {
+    const cols = [];
+    let cur = '', inQ = false;
+    for (let i = 0; i < line.length; i++) {
+      if (line[i] === '"') { inQ = !inQ; }
+      else if (line[i] === ',' && !inQ) { cols.push(cur.trim()); cur = ''; }
+      else cur += line[i];
+    }
+    cols.push(cur.trim());
+    return cols;
+  });
+}
+
+function processRows(rows) {
+  if (!rows || rows.length < 2) return null;
+  const vendas = [], entradas = [], equipes = [];
+
+  for (let i = 1; i < rows.length; i++) {
+    const r = rows[i];
+    const nomeV  = r[11]; const valV   = r[12];
+    const nomeE  = r[6];  const valE   = r[7];
+    const nomeEnt = r[11]; const valEnt = r[13];
+
+    if (nomeV && nomeV !== '#N/D' && nomeV !== 'Nome' && nomeV !== '') {
+      const v = parseBRL(valV);
+      if (v > 0) vendas.push({ name: nomeV, raw: v, label: 'em vendas' });
+    }
+    if (nomeEnt && nomeEnt !== '#N/D' && nomeEnt !== 'Nome' && nomeEnt !== '') {
+      const e = parseBRL(valEnt);
+      if (e > 0) entradas.push({ name: nomeEnt, raw: e, label: 'de entrada' });
+    }
+    if (nomeE && nomeE !== '#N/D' && nomeE !== 'Equipe' && nomeE !== '') {
+      const eq = parseBRL(valE);
+      if (eq > 0) equipes.push({ name: nomeE, raw: eq, label: 'em equipe' });
+    }
+  }
+
+  const dedup = arr => {
+    const seen = {};
+    return arr.filter(x => { if (seen[x.name]) return false; seen[x.name] = true; return true; });
+  };
+
+  const sort = arr => arr.sort((a,b) => b.raw - a.raw);
+  const fmt = arr => arr.map(x => ({ ...x, value: formatBRL(x.raw) }));
+
+  return {
+    vendas:   fmt(dedup(sort(vendas)).slice(0,3)),
+    entradas: fmt(dedup(sort(entradas)).slice(0,3)),
+    equipes:  fmt(dedup(sort(equipes)).slice(0,3)),
+    totalVendas: vendas.reduce((s,x) => s+x.raw, 0),
+    totalEntradas: entradas.reduce((s,x) => s+x.raw, 0)
+  };
+}
+
+function demoData() {
+  return {
+    vendas:   [{name:'Rotthiman',value:'R$ 39.000',raw:39000,label:'em vendas'},{name:'Camila',value:'R$ 27.000',raw:27000,label:'em vendas'},{name:'Marcio',value:'R$ 24.000',raw:24000,label:'em vendas'}],
+    entradas: [{name:'Rotthiman',value:'R$ 60.000',raw:60000,label:'de entrada'},{name:'Beatriz',value:'R$ 23.000',raw:23000,label:'de entrada'},{name:'Marcio',value:'R$ 4.500',raw:4500,label:'de entrada'}],
+    equipes:  [{name:'Igor',value:'R$ 103.000',raw:103000,label:'em equipe'},{name:'Luciano',value:'R$ 46.500',raw:46500,label:'em equipe'},{name:'Thompson',value:'R$ 26.000',raw:26000,label:'em equipe'}],
+    totalVendas: 156000, totalEntradas: 87500
+  };
+}
+
+function buildPodium(id, items) {
+  const el = document.getElementById(id);
+  if (!items || !items.length) {
+    el.innerHTML = '<div class="empty-state">Nenhum dado encontrado<br>Configure a planilha para carregar os rankings</div>';
+    return;
+  }
+  const order = items.length >= 3 ? [items[1],items[0],items[2]] : items;
+  const classes = items.length >= 3 ? ['rank-2','rank-1','rank-3'] : ['rank-1','rank-2','rank-3'];
+  el.innerHTML = order.map((item,i) => {
+    if (!item) return '<div></div>';
+    const rc = classes[i];
+    const n = rc==='rank-1'?1:rc==='rank-2'?2:3;
+    return `<div class="podium-card ${rc}">
+      <span class="rank-number">${n}º</span>
+      <div class="rank-avatar">${getInitials(item.name)}</div>
+      <div class="rank-name">${item.name}</div>
+      <div class="rank-value">${item.value}</div>
+      <div class="rank-label">${item.label||''}</div>
+    </div>`;
+  }).join('');
+}
+
+function buildProgress() {
+  const tv = lastData ? lastData.totalVendas : 0;
+  const te = lastData ? lastData.totalEntradas : 0;
+  const pv = metas.vendas > 0 ? Math.min(100, Math.round(tv/metas.vendas*100)) : 0;
+  const pe = metas.entradas > 0 ? Math.min(100, Math.round(te/metas.entradas*100)) : 0;
+  document.getElementById('progress-card').innerHTML = `
+    <div class="progress-row">
+      <div class="progress-info">
+        <span class="progress-label">Meta de Vendas</span>
+        <div style="text-align:right">
+          <div class="progress-pct gold">${pv}%</div>
+          <div class="progress-values">${formatBRL(tv)} / ${formatBRL(metas.vendas)}</div>
+        </div>
+      </div>
+      <div class="progress-track"><div class="progress-fill gold" style="width:${pv}%"></div></div>
+    </div>
+    <div class="progress-row">
+      <div class="progress-info">
+        <span class="progress-label">Meta de Entradas</span>
+        <div style="text-align:right">
+          <div class="progress-pct blue">${pe}%</div>
+          <div class="progress-values">${formatBRL(te)} / ${formatBRL(metas.entradas)}</div>
+        </div>
+      </div>
+      <div class="progress-track"><div class="progress-fill blue" style="width:${pe}%"></div></div>
+    </div>`;
+}
+
+function updateTicker(d) {
+  const p = [];
+  if (d.vendas[0])   p.push(`Líder em vendas: ${d.vendas[0].name} — ${d.vendas[0].value}`);
+  if (d.entradas[0]) p.push(`Maior entrada: ${d.entradas[0].name} — ${d.entradas[0].value}`);
+  if (d.equipes[0])  p.push(`Equipe destaque: ${d.equipes[0].name} — ${d.equipes[0].value}`);
+  document.getElementById('ticker-text').textContent = p.join('   ·   ');
+}
+
+function renderAll(data) {
+  lastData = data;
+  buildPodium('podium-vendas', data.vendas);
+  buildPodium('podium-entradas', data.entradas);
+  buildPodium('podium-equipes', data.equipes);
+  buildProgress();
+  updateTicker(data);
+  const now = new Date();
+  document.getElementById('last-update').textContent = 'Atualizado às ' + now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+}
+
+async function fetchData() {
+  if (!csvUrl) { renderAll(demoData()); return; }
+  try {
+    const proxy = 'https://corsproxy.io/?' + encodeURIComponent(csvUrl);
+    const res = await fetch(proxy);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const text = await res.text();
+    const rows = parseCSV(text);
+    const data = processRows(rows);
+    renderAll(data || demoData());
+  } catch(e) {
+    console.error(e);
+    renderAll(demoData());
+  }
+}
+
+function goTo(idx) {
+  currentSlide = idx;
+  document.getElementById('slides').style.transform = `translateX(-${idx*100}%)`;
+  document.querySelectorAll('.dot').forEach((d,i) => d.classList.toggle('active', i===idx));
+  if (autoTimer) clearInterval(autoTimer);
+  autoTimer = setInterval(() => goTo((currentSlide+1)%4), 8000);
+}
+
+function openSheetModal() { document.getElementById('sheet-modal').classList.add('open'); }
+function closeSheetModal() { document.getElementById('sheet-modal').classList.remove('open'); }
+
+async function saveSheet() {
+  const url = document.getElementById('csv-url').value.trim();
+  const st = document.getElementById('sheet-status');
+  if (!url) { st.innerHTML = '<div class="status-bar err">Cole o link CSV da planilha</div>'; return; }
+  st.innerHTML = '<div class="status-bar loading">Testando conexão...</div>';
+  try {
+    const proxy = 'https://corsproxy.io/?' + encodeURIComponent(url);
+    const res = await fetch(proxy);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const text = await res.text();
+    if (!text.includes(',')) throw new Error('Formato inválido');
+    csvUrl = url;
+    try { localStorage.setItem('adv_csv', csvUrl); } catch(e) {}
+    st.innerHTML = '<div class="status-bar ok">Conectado! Carregando dados...</div>';
+    const rows = parseCSV(text);
+    const data = processRows(rows);
+    renderAll(data || demoData());
+    setTimeout(closeSheetModal, 1000);
+  } catch(e) {
+    st.innerHTML = '<div class="status-bar err">Não foi possível ler a planilha. Verifique se ela foi publicada como CSV e o link está correto.</div>';
+  }
+}
+
+function openMetaModal() {
+  document.getElementById('meta-vendas').value = metas.vendas;
+  document.getElementById('meta-entradas').value = metas.entradas;
+  document.getElementById('meta-modal').classList.add('open');
+}
+function closeMetaModal() { document.getElementById('meta-modal').classList.remove('open'); }
+function saveMetas() {
+  metas.vendas = parseFloat(document.getElementById('meta-vendas').value) || 300000;
+  metas.entradas = parseFloat(document.getElementById('meta-entradas').value) || 60000;
+  try { localStorage.setItem('adv_metas', JSON.stringify(metas)); } catch(e){}
+  buildProgress();
+  closeMetaModal();
+}
+
+load();
+fetchData();
+setInterval(fetchData, 30000);
+autoTimer = setInterval(() => goTo((currentSlide+1)%4), 8000);
+</script>
