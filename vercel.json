@@ -1,5 +1,5 @@
 {
   "rewrites": [
-    { "source": "/api/csv", "destination": "/api/csv.js" }
+    { "source": "/api/(.*)", "destination": "/api/$1" }
   ]
 }
