@@ -1,25 +1,21 @@
+// api/csv.js
 export default async function handler(req, res) {
-  const { url } = req.query;
+  // Tenta pegar a URL do navegador. Se não tiver, usa a variável secreta da Vercel
+  const url = req.query.url || process.env.SECRET_CSV_URL;
 
   if (!url) {
-    return res.status(400).json({ error: 'Missing url param' });
-  }
-
-  // Só permite URLs do Google Sheets
-  if (!url.startsWith('https://docs.google.com/spreadsheets/')) {
-    return res.status(403).json({ error: 'URL não permitida' });
+    return res.status(400).send('URL da planilha não configurada no servidor.');
   }
 
   try {
     const response = await fetch(url);
-    if (!response.ok) throw new Error('HTTP ' + response.status);
-    const text = await response.text();
-
+    const data = await response.text();
+    
+    // Configura headers para evitar cache agressivo e permitir o acesso
     res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-    res.setHeader('Cache-Control', 's-maxage=25, stale-while-revalidate');
-    return res.status(200).send(text);
-  } catch (e) {
-    return res.status(500).json({ error: e.message });
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    res.status(200).send(data);
+  } catch (error) {
+    res.status(500).send('Erro ao buscar planilha: ' + error.message);
   }
 }
