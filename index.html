@@ -18,8 +18,6 @@
     .live-dot { width: 5px; height: 5px; border-radius: 50%; background: #22c55e; animation: pulse 1.5s infinite; }
     @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
     .btn { border-radius: 8px; font-size: 12px; cursor: pointer; padding: 6px 13px; transition: all 0.2s; border: none; }
-    .btn-gold { background: rgba(201,168,76,0.1); border: 0.5px solid rgba(201,168,76,0.3); color: #c9a84c; }
-    .btn-gold:hover { background: rgba(201,168,76,0.18); }
     .btn-ghost { background: rgba(255,255,255,0.05); border: 0.5px solid rgba(255,255,255,0.1); color: rgba(255,255,255,0.6); }
     .btn-ghost:hover { background: rgba(255,255,255,0.09); }
 
@@ -60,7 +58,7 @@
     .ticker { background: rgba(255,255,255,0.02); border-top: 0.5px solid rgba(255,255,255,0.05); padding: 9px 28px; font-size: 11px; color: rgba(255,255,255,0.3); display: flex; align-items: center; gap: 8px; }
     .ticker-label { color: rgba(201,168,76,0.6); font-weight: 500; white-space: nowrap; }
 
-    /* Modal */
+    /* Modal Metas */
     .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.72); display: flex; align-items: center; justify-content: center; z-index: 100; opacity: 0; pointer-events: none; transition: opacity 0.2s; }
     .modal-overlay.open { opacity: 1; pointer-events: all; }
     .modal { background: #13131a; border: 0.5px solid rgba(255,255,255,0.11); border-radius: 16px; padding: 26px; width: 460px; max-width: 92vw; }
@@ -70,17 +68,10 @@
     .modal-field label { display: block; font-size: 11px; color: rgba(255,255,255,0.4); margin-bottom: 5px; }
     .modal-field input { width: 100%; background: rgba(255,255,255,0.05); border: 0.5px solid rgba(255,255,255,0.11); border-radius: 8px; padding: 9px 13px; color: rgba(255,255,255,0.88); font-size: 13px; font-family: monospace; outline: none; }
     .modal-field input:focus { border-color: rgba(201,168,76,0.4); }
-    .hint-box { background: rgba(201,168,76,0.05); border: 0.5px solid rgba(201,168,76,0.18); border-radius: 8px; padding: 11px 13px; margin-bottom: 14px; }
-    .hint-step { font-size: 11px; color: rgba(255,255,255,0.45); line-height: 1.9; }
-    .hint-step strong { color: rgba(201,168,76,0.75); font-weight: 500; }
     .modal-actions { display: flex; gap: 9px; margin-top: 18px; }
     .btn-save { flex: 1; background: #c9a84c; border: none; color: #0a0a0f; padding: 10px; border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer; }
     .btn-save:hover { background: #e2b84a; }
     .btn-cancel { background: rgba(255,255,255,0.04); border: 0.5px solid rgba(255,255,255,0.09); color: rgba(255,255,255,0.55); padding: 10px 14px; border-radius: 8px; font-size: 13px; cursor: pointer; }
-    .status-bar { margin-top: 9px; font-size: 11px; padding: 7px 11px; border-radius: 6px; }
-    .status-bar.ok { background: rgba(34,197,94,0.1); color: #22c55e; }
-    .status-bar.err { background: rgba(239,68,68,0.1); color: #ef4444; }
-    .status-bar.loading { background: rgba(255,255,255,0.04); color: rgba(255,255,255,0.38); }
     .empty { grid-column:1/-1; text-align:center; color:rgba(255,255,255,0.2); padding:32px 0; font-size:12px; line-height:2; }
   </style>
 </head>
@@ -96,7 +87,6 @@
   </div>
   <div class="header-right">
     <div class="live-badge"><div class="live-dot"></div> Ao vivo</div>
-    <button class="btn btn-gold" onclick="openSheetModal()">Planilha</button>
     <button class="btn btn-ghost" onclick="openMetaModal()">Metas</button>
   </div>
 </div>
@@ -126,31 +116,7 @@
 
 <div class="ticker">
   <span class="ticker-label">DESTAQUES</span>
-  <span id="ticker-text">Configure a planilha para ver dados em tempo real</span>
-</div>
-
-<!-- Modal Planilha -->
-<div class="modal-overlay" id="sheet-modal">
-  <div class="modal">
-    <div class="modal-title">Conectar planilha — 100% gratuito</div>
-    <div class="modal-desc">Sem API Key, sem cadastro. Basta publicar como CSV.</div>
-    <div class="hint-box">
-      <div class="hint-step">1. Abra sua planilha no Google Sheets</div>
-      <div class="hint-step">2. <strong>Arquivo → Compartilhar → Publicar na web</strong></div>
-      <div class="hint-step">3. Selecione a aba <strong>Ranking</strong> e <strong>Valores separados por vírgula</strong></div>
-      <div class="hint-step">4. Clique em <strong>Publicar</strong> → selecione <strong>Link</strong> → copie</div>
-      <div class="hint-step">5. Cole abaixo e clique em Conectar</div>
-    </div>
-    <div class="modal-field">
-      <label>Link CSV da planilha publicada</label>
-      <input type="text" id="csv-url" placeholder="https://docs.google.com/spreadsheets/d/.../pub?output=csv">
-    </div>
-    <div id="sheet-status"></div>
-    <div class="modal-actions">
-      <button class="btn-cancel" onclick="closeSheetModal()">Cancelar</button>
-      <button class="btn-save" onclick="saveSheet()">Conectar</button>
-    </div>
-  </div>
+  <span id="ticker-text">Carregando dados...</span>
 </div>
 
 <!-- Modal Metas -->
@@ -175,17 +141,14 @@
 
 <script>
   let metas = { vendas: 300000, entradas: 60000 };
-  let csvUrl = '';
   let lastData = null;
 
   function load() {
     try {
       const m = localStorage.getItem('adv_metas');
       if (m) metas = JSON.parse(m);
-      csvUrl = localStorage.getItem('adv_csv') || '';
       document.getElementById('meta-vendas').value = metas.vendas;
       document.getElementById('meta-entradas').value = metas.entradas;
-      document.getElementById('csv-url').value = csvUrl;
     } catch(e) {}
   }
 
@@ -270,7 +233,7 @@
   function buildPodium(id, items) {
     const el = document.getElementById(id);
     if (!items || !items.length) {
-      el.innerHTML = '<div class="empty">Nenhum dado encontrado<br>Configure a planilha</div>';
+      el.innerHTML = '<div class="empty">Nenhum dado encontrado<br>Verifique a planilha configurada no servidor</div>';
       return;
     }
     const order   = items.length >= 3 ? [items[1],items[0],items[2]] : items;
@@ -337,46 +300,20 @@
       'Atualizado às ' + now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
   }
 
-  // Usa o proxy próprio do Vercel — sem dependência externa
   async function fetchData() {
-    if (!csvUrl) { renderAll(demoData()); return; }
     try {
-      const proxyUrl = '/api/csv?url=' + encodeURIComponent(csvUrl);
-      const res = await fetch(proxyUrl);
+      const res = await fetch('/api/csv');
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const text = await res.text();
       const rows = parseCSV(text);
       renderAll(processRows(rows) || demoData());
     } catch(e) {
-      console.error(e);
+      console.error("Erro ao buscar dados:", e);
       renderAll(demoData());
     }
   }
 
-  function openSheetModal()  { document.getElementById('sheet-modal').classList.add('open'); }
-  function closeSheetModal() { document.getElementById('sheet-modal').classList.remove('open'); }
-
-  async function saveSheet() {
-    const url = document.getElementById('csv-url').value.trim();
-    const st  = document.getElementById('sheet-status');
-    if (!url) { st.innerHTML = '<div class="status-bar err">Cole o link CSV da planilha</div>'; return; }
-    st.innerHTML = '<div class="status-bar loading">Testando conexão...</div>';
-    try {
-      const res  = await fetch('/api/csv?url=' + encodeURIComponent(url));
-      if (!res.ok) throw new Error('HTTP ' + res.status);
-      const text = await res.text();
-      if (!text.includes(',')) throw new Error('Formato inválido');
-      csvUrl = url;
-      try { localStorage.setItem('adv_csv', csvUrl); } catch(e) {}
-      st.innerHTML = '<div class="status-bar ok">Conectado! Carregando dados...</div>';
-      renderAll(processRows(parseCSV(text)) || demoData());
-      setTimeout(closeSheetModal, 1000);
-    } catch(e) {
-      st.innerHTML = '<div class="status-bar err">Não foi possível ler. Verifique se a planilha foi publicada como CSV.</div>';
-    }
-  }
-
-  function openMetaModal()  {
+  function openMetaModal() {
     document.getElementById('meta-vendas').value   = metas.vendas;
     document.getElementById('meta-entradas').value = metas.entradas;
     document.getElementById('meta-modal').classList.add('open');
