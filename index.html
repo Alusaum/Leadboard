@@ -339,19 +339,17 @@
 
   // Usa o proxy próprio do Vercel — sem dependência externa
   async function fetchData() {
+    if (!csvUrl) { renderAll(demoData()); return; }
     try {
-      // Se tiver uma URL local (alguém usou o botão do modal), ele passa a URL.
-      // Se não tiver (primeiro acesso), ele apenas chama /api/csv e a Vercel faz a mágica!
-      const proxyUrl = csvUrl ? '/api/csv?url=' + encodeURIComponent(csvUrl) : '/api/csv';
-      
+      const proxyUrl = '/api/csv?url=' + encodeURIComponent(csvUrl);
       const res = await fetch(proxyUrl);
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const text = await res.text();
       const rows = parseCSV(text);
       renderAll(processRows(rows) || demoData());
     } catch(e) {
-      console.error("Erro na API:", e);
-      renderAll(demoData()); // Mostra demo se der erro ou estiver sem conexão
+      console.error(e);
+      renderAll(demoData());
     }
   }
 
