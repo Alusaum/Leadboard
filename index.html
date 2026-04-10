@@ -71,7 +71,12 @@
     .modal-actions { display: flex; gap: 9px; margin-top: 18px; }
     .btn-save { flex: 1; background: #c9a84c; border: none; color: #0a0a0f; padding: 10px; border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer; }
     .btn-save:hover { background: #e2b84a; }
+    .btn-save:disabled { opacity: 0.5; cursor: not-allowed; }
     .btn-cancel { background: rgba(255,255,255,0.04); border: 0.5px solid rgba(255,255,255,0.09); color: rgba(255,255,255,0.55); padding: 10px 14px; border-radius: 8px; font-size: 13px; cursor: pointer; }
+    .status-bar { margin-top: 9px; font-size: 11px; padding: 7px 11px; border-radius: 6px; }
+    .status-bar.ok  { background: rgba(34,197,94,0.1);  color: #22c55e; }
+    .status-bar.err { background: rgba(239,68,68,0.1);  color: #ef4444; }
+    .status-bar.loading { background: rgba(255,255,255,0.04); color: rgba(255,255,255,0.38); }
     .empty { grid-column:1/-1; text-align:center; color:rgba(255,255,255,0.2); padding:32px 0; font-size:12px; line-height:2; }
   </style>
 </head>
@@ -123,7 +128,7 @@
 <div class="modal-overlay" id="meta-modal">
   <div class="modal">
     <div class="modal-title">Definir Metas</div>
-    <div class="modal-desc">Salvos no navegador, persistem entre sessões.</div>
+    <div class="modal-desc">A alteração será refletida para todos os visualizadores em até 30 segundos.</div>
     <div class="modal-field">
       <label>Meta de Vendas (R$)</label>
       <input type="number" id="meta-vendas" placeholder="Ex: 300000">
@@ -132,9 +137,10 @@
       <label>Meta de Entradas (R$)</label>
       <input type="number" id="meta-entradas" placeholder="Ex: 60000">
     </div>
+    <div id="meta-status"></div>
     <div class="modal-actions">
       <button class="btn-cancel" onclick="closeMetaModal()">Cancelar</button>
-      <button class="btn-save" onclick="saveMetas()">Salvar</button>
+      <button class="btn-save" id="btn-salvar-meta" onclick="saveMetas()">Salvar para todos</button>
     </div>
   </div>
 </div>
@@ -142,15 +148,6 @@
 <script>
   let metas = { vendas: 300000, entradas: 60000 };
   let lastData = null;
-
-  function load() {
-    try {
-      const m = localStorage.getItem('adv_metas');
-      if (m) metas = JSON.parse(m);
-      document.getElementById('meta-vendas').value = metas.vendas;
-      document.getElementById('meta-entradas').value = metas.entradas;
-    } catch(e) {}
-  }
 
   function getInitials(name) {
     if (!name) return '?';
@@ -190,11 +187,11 @@
 
     for (let i = 1; i < rows.length; i++) {
       const r = rows[i];
-      const nomeV = (r[11] || '').trim(); // col L
-      const valV  = r[12];               // col M — vendas mensais
-      const valN  = r[13];               // col N — entrada Páscoa
-      const nomeE = (r[6]  || '').trim(); // col G — equipe
-      const valE  = r[7];               // col H — vendas equipe
+      const nomeV = (r[11] || '').trim();
+      const valV  = r[12];
+      const valN  = r[13];
+      const nomeE = (r[6]  || '').trim();
+      const valE  = r[7];
 
       if (!skip(nomeV)) {
         const v = parseBRL(valV);
@@ -300,11 +297,21 @@
       'Atualizado às ' + now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
   }
 
+  // Busca CSV + metas do servidor em paralelo
   async function fetchData() {
     try {
-      const res = await fetch('/api/csv');
-      if (!res.ok) throw new Error('HTTP ' + res.status);
-      const text = await res.text();
+      const [csvRes, metasRes] = await Promise.all([
+        fetch('/api/csv'),
+        fetch('/api/metas')
+      ]);
+
+      if (metasRes.ok) {
+        const m = await metasRes.json();
+        if (m && m.vendas && m.entradas) metas = m;
+      }
+
+      if (!csvRes.ok) throw new Error('HTTP ' + csvRes.status);
+      const text = await csvRes.text();
       const rows = parseCSV(text);
       renderAll(processRows(rows) || demoData());
     } catch(e) {
@@ -316,18 +323,38 @@
   function openMetaModal() {
     document.getElementById('meta-vendas').value   = metas.vendas;
     document.getElementById('meta-entradas').value = metas.entradas;
+    document.getElementById('meta-status').innerHTML = '';
     document.getElementById('meta-modal').classList.add('open');
   }
   function closeMetaModal() { document.getElementById('meta-modal').classList.remove('open'); }
-  function saveMetas() {
-    metas.vendas   = parseFloat(document.getElementById('meta-vendas').value)   || 300000;
-    metas.entradas = parseFloat(document.getElementById('meta-entradas').value) || 60000;
-    try { localStorage.setItem('adv_metas', JSON.stringify(metas)); } catch(e) {}
-    buildProgress();
-    closeMetaModal();
+
+  async function saveMetas() {
+    const vendas   = parseFloat(document.getElementById('meta-vendas').value)   || 300000;
+    const entradas = parseFloat(document.getElementById('meta-entradas').value) || 60000;
+    const st  = document.getElementById('meta-status');
+    const btn = document.getElementById('btn-salvar-meta');
+
+    st.innerHTML  = '<div class="status-bar loading">Salvando...</div>';
+    btn.disabled  = true;
+
+    try {
+      const res = await fetch('/api/metas', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ vendas, entradas })
+      });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      metas = { vendas, entradas };
+      buildProgress();
+      st.innerHTML = '<div class="status-bar ok">Salvo! Todos verão a nova meta em até 30s.</div>';
+      setTimeout(closeMetaModal, 1500);
+    } catch(e) {
+      st.innerHTML = '<div class="status-bar err">Erro ao salvar. Tente novamente.</div>';
+    } finally {
+      btn.disabled = false;
+    }
   }
 
-  load();
   fetchData();
   setInterval(fetchData, 30000);
 </script>
