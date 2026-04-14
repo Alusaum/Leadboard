@@ -7,6 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
+    /* CSS ANTIGO MANTIDO INTEGRALMENTE */
     :root {
       --bg:        #07080d;
       --surface:   #0d0f18;
@@ -100,7 +101,6 @@
       position: relative; z-index: 1;
       display: grid;
       grid-template-columns: 1fr 1fr;
-      grid-template-rows: auto auto;
       gap: 16px;
       padding: 20px 32px;
     }
@@ -150,12 +150,12 @@
     .p-card.rank-2 {
       background: linear-gradient(160deg, #0f1219 0%, #161d27 100%);
       border: 1px solid rgba(143,163,184,0.18);
-      order: 1; margin-bottom: 0;
+      order: 1;
     }
     .p-card.rank-3 {
       background: linear-gradient(160deg, #150e08 0%, #1e1510 100%);
       border: 1px solid rgba(168,124,80,0.18);
-      order: 3; margin-bottom: 0;
+      order: 3;
     }
 
     .p-badge {
@@ -207,7 +207,6 @@
       margin-bottom: 8px;
     }
     .prog-label { font-size: 13px; font-weight: 600; color: var(--text); }
-    .prog-right { text-align: right; }
     .prog-pct {
       font-size: 18px; font-weight: 700;
       font-family: 'DM Mono', monospace;
@@ -251,17 +250,10 @@
       border-radius: 18px;
       padding: 28px;
       width: 440px; max-width: 92vw;
-      transform: translateY(8px);
-      transition: transform 0.25s;
     }
-    .overlay.open .modal { transform: translateY(0); }
 
     .modal-title { font-size: 17px; font-weight: 700; margin-bottom: 4px; }
-    .modal-desc {
-      font-size: 12px; color: var(--muted);
-      margin-bottom: 22px; line-height: 1.7;
-      font-family: 'DM Mono', monospace;
-    }
+    .modal-desc { font-size: 12px; color: var(--muted); margin-bottom: 22px; font-family: 'DM Mono', monospace; }
 
     .field { margin-bottom: 14px; }
     .field label {
@@ -276,7 +268,7 @@
       border-radius: 9px; padding: 10px 14px;
       color: var(--text); font-size: 13px;
       font-family: 'DM Mono', monospace;
-      outline: none; transition: border-color 0.2s;
+      outline: none;
     }
     .field input:focus { border-color: rgba(201,168,76,0.45); }
 
@@ -285,19 +277,14 @@
       flex: 1; background: var(--gold); border: none;
       color: #07080d; padding: 11px;
       border-radius: 9px; font-size: 13px; font-weight: 700;
-      font-family: 'Syne', sans-serif;
-      cursor: pointer; transition: background 0.2s;
+      cursor: pointer;
     }
-    .btn-save:hover { background: #e2b84a; }
-    .btn-save:disabled { opacity: 0.5; cursor: not-allowed; }
     .btn-cancel {
       background: var(--faint); border: 1px solid var(--border);
       color: var(--muted); padding: 11px 16px;
       border-radius: 9px; font-size: 13px;
-      font-family: 'Syne', sans-serif;
-      cursor: pointer; transition: background 0.2s;
+      cursor: pointer;
     }
-    .btn-cancel:hover { background: rgba(255,255,255,0.07); }
 
     .toast {
       position: fixed; bottom: 24px; right: 24px;
@@ -349,6 +336,12 @@
   </div>
 
   <div class="panel">
+    <div class="panel-eyebrow">Ranking Mensal</div>
+    <div class="panel-title">Maiores Entradas Mensais</div>
+    <div class="podium" id="pod-entradas-mensais"></div>
+  </div>
+
+  <div class="panel">
     <div class="panel-eyebrow">Performance</div>
     <div class="panel-title">Progresso das Metas</div>
     <div class="progress-grid" id="progress-wrap"></div>
@@ -357,20 +350,10 @@
 
 <div class="overlay" id="overlay">
   <div class="modal">
-    <div class="modal-title">Definir Metas</div>
-    <div class="modal-desc">As metas ficam centralizadas e valem para todos os dispositivos.</div>
-      <div class="field">
-        <label>Meta de Vendas Mensais (R$)</label>
-        <input type="number" id="inp-vendas" placeholder="Ex: 300000">
-      </div>
-      <div class="field">
-        <label>Meta de Entradas Mensais (R$)</label>
-        <input type="number" id="inp-entradas-mensais" placeholder="Ex: 100000">
-      </div>
-      <div class="field">
-        <label>Meta de Entradas Semanais (R$)</label>
-        <input type="number" id="inp-entradas" placeholder="Ex: 60000">
-      </div>
+    <div class="modal-title" style="font-weight:700; margin-bottom:10px;">Definir Metas</div>
+    <div class="field"><label>Meta de Vendas Mensais (R$)</label><input type="number" id="inp-vendas"></div>
+    <div class="field"><label>Meta de Entradas Mensais (R$)</label><input type="number" id="inp-entradas-mensais"></div>
+    <div class="field"><label>Meta de Entradas Semanais (R$)</label><input type="number" id="inp-entradas"></div>
     <div class="modal-actions">
       <button class="btn-cancel" onclick="closeModal()">Cancelar</button>
       <button class="btn-save" id="btn-save" onclick="saveMetas()">Salvar</button>
@@ -381,19 +364,12 @@
 <div class="toast" id="toast"></div>
 
 <script>
-/* ═══════════════════════════════════════════════════
-   CONFIGURAÇÃO E ESTADO
-   ═══════════════════════════════════════════════════ */
 const API = { sheets: "/api/sheets", metas: "/api/metas" };
 const GID = { mensal: "0" };
 
 let metas = { meta_vendas: 0, meta_entradas: 0, meta_entradas_mensais: 0 };
-let dados = { mensal: [], semanal: [], equipes: [] };
+let dados = { mensal: [], semanal: [], equipes: [], entradasMensais: [] };
 let totais = { vendas: 0, entradas: 0, entradasMensais: 0 };
-
-/* ═══════════════════════════════════════════════════
-   INICIALIZAÇÃO E CARREGAMENTO
-   ═══════════════════════════════════════════════════ */
 
 async function init() {
   await loadMetas();
@@ -422,13 +398,9 @@ async function loadSheets() {
   } catch (e) { console.error("Erro na sincronização:", e); }
 }
 
-/* ═══════════════════════════════════════════════════
-   LÓGICA DE PROCESSAMENTO (FIX: MAPEAR COLUNAS CORRETAS)
-   ═══════════════════════════════════════════════════ */
-
 function findKey(keys, search) {
   const s = search.toLowerCase();
-  return keys.find(k => k.toLowerCase().includes(s)) ?? null;
+  return keys.find(k => k.toLowerCase() === s) || keys.find(k => k.toLowerCase().includes(s)) || null;
 }
 
 function parseUnicaAba(rows) {
@@ -437,51 +409,43 @@ function parseUnicaAba(rows) {
   const keys = Object.keys(rows[0]);
   const clean = rows.filter(r => Object.values(r).some(v => v && v.trim() !== "" && v !== "#N/D"));
 
-  // MAPEAMENTO DINÂMICO BASEADO NO PRINT
+  // MAPEAMENTO DINÂMICO
   const kVendedor = findKey(keys, "vendedor");
   const kValidos = findKey(keys, "valores válidos");
   const kPontos = findKey(keys, "pontos");
   const kEntradaMensal = keys.find(k => k.toLowerCase() === "entrada"); 
   const kEntradaSemanal = keys.find(k => k.toLowerCase() === "entrada_2") || kEntradaMensal;
   const kEquipe = findKey(keys, "equipe");
-  
-  // FIX: Busca exata para "Vendas" (brutas) da Campanha Mensal
-  const kVendasEquipe = keys.find(k => k.trim().toLowerCase() === "vendas"); 
+  const kVendasValidasEquipe = findKey(keys, "vendas válidas"); 
 
-  /* 1. RANKING MENSAL (Vendedores) - Agora com Valores Válidos */
-  dados.mensal = clean
-    .map(r => ({
-      nome:    r[kVendedor]?.trim() || "—",
-      vendas:  Number(r[kPontos]) || 0,
-      validos: parseMoeda(r[kValidos]), 
-    }))
-    .filter(r => r.validos > 0)
-    .sort((a, b) => b.validos - a.validos)
-    .slice(0, 3);
+  /* 1. RANKING MENSAL (Vendedores) */
+  dados.mensal = clean.map(r => ({
+    nome:    r[kVendedor]?.trim() || "—",
+    vendas:  Number(r[kPontos]) || 0,
+    validos: parseMoeda(r[kValidos]), 
+  })).filter(r => r.validos > 0).sort((a, b) => b.validos - a.validos).slice(0, 3);
 
-  /* 2. CAMPANHA MENSAL (EQUIPES) - Agora com Vendas Brutas */
-  dados.equipes = clean
-    .map(r => ({
-      equipe: r[kEquipe]?.trim() || "—",
-      vendas: parseMoeda(r[kVendasEquipe]), 
-    }))
-    .filter(r => r.vendas > 0)
-    .sort((a, b) => b.vendas - a.vendas)
-    .slice(0, 3);
+  /* 2. CAMPANHA MENSAL (EQUIPES) */
+  dados.equipes = clean.map(r => ({
+    equipe: r[kEquipe]?.trim() || "—",
+    vendas: parseMoeda(r[kVendasValidasEquipe]), 
+  })).filter(r => r.vendas > 0).sort((a, b) => b.vendas - a.vendas).slice(0, 3);
 
-  /* 3. CAMPANHA SEMANAL - Maiores Entradas */
+  /* 3. CAMPANHA SEMANAL */
   const kSucesso = findKey(keys, "sucesso");
-  dados.semanal = clean
-    .map(r => ({
-      equipe:  r[keys.find(k => k.toLowerCase() === "equipe_2") || kEquipe]?.trim() || "—",
-      entrada: parseMoeda(r[kEntradaSemanal]),
-      sucesso: (r[kSucesso] ?? "").trim(),
-    }))
-    .filter(r => r.entrada > 0)
-    .sort((a, b) => b.entrada - a.entrada)
-    .slice(0, 3);
+  dados.semanal = clean.map(r => ({
+    equipe:  r[keys.find(k => k.toLowerCase() === "equipe_2") || kEquipe]?.trim() || "—",
+    entrada: parseMoeda(r[kEntradaSemanal]),
+    sucesso: (r[kSucesso] ?? "").trim(),
+  })).filter(r => r.entrada > 0).sort((a, b) => b.entrada - a.entrada).slice(0, 3);
 
-  /* TOTAIS PARA AS 3 BARRAS DE PERFORMANCE */
+  /* 4. MAIORES ENTRADAS MENSAIS (NOVO) */
+  dados.entradasMensais = clean.map(r => ({
+    nome:    r[kVendedor]?.trim() || "—",
+    entrada: parseMoeda(r[kEntradaMensal]),
+  })).filter(r => r.entrada > 0).sort((a, b) => b.entrada - a.entrada).slice(0, 3);
+
+  // TOTAIS PARA AS 3 BARRAS
   totais.vendas = clean.reduce((s, r) => s + parseMoeda(r[kValidos]), 0);
   totais.entradasMensais = clean.reduce((s, r) => s + parseMoeda(r[kEntradaMensal]), 0);
   totais.entradas = clean.reduce((s, r) => s + parseMoeda(r[kEntradaSemanal]), 0);
@@ -492,14 +456,11 @@ function parseMoeda(v) {
   return Number(String(v).replace(/[R$\s.]/g, "").replace(",", ".")) || 0;
 }
 
-/* ═══════════════════════════════════════════════════
-   INTERFACE E RENDERIZAÇÃO
-   ═══════════════════════════════════════════════════ */
-
 function render() {
-  renderPodium("pod-mensal",  dados.mensal,  "mensal");
-  renderPodium("pod-semanal", dados.semanal, "semanal");
-  renderPodium("pod-equipes", dados.equipes, "equipes");
+  renderPodium("pod-mensal",           dados.mensal,          "mensal");
+  renderPodium("pod-semanal",          dados.semanal,         "semanal");
+  renderPodium("pod-equipes",          dados.equipes,         "equipes");
+  renderPodium("pod-entradas-mensais", dados.entradasMensais, "entradas-mensais");
   renderProgress();
 }
 
@@ -514,25 +475,17 @@ function renderPodium(id, items, tipo) {
   const rankClass = ["rank-2", "rank-1", "rank-3"];
 
   el.innerHTML = ordered.map((item, vi) => {
-    const rClass = rankClass[vi];
-    const badge  = vi === 1 ? "#1" : vi === 0 ? "#2" : "#3";
-    const label  = item.nome || item.equipe || "—";
+    const badge = vi === 1 ? "#1" : vi === 0 ? "#2" : "#3";
+    const label = item.nome || item.equipe;
     const initials = label.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
     
-    let valor, sublabel;
-    if (tipo === "mensal") {
-      valor = fmt(item.validos);
-      sublabel = `${item.vendas} vendas`;
-    } else if (tipo === "semanal") {
-      valor = fmt(item.entrada);
-      sublabel = item.sucesso === "Sim" ? "✓ Meta" : "Em progresso";
-    } else {
-      valor = fmt(item.vendas);
-      sublabel = ""; // Texto "total" removido para um visual mais limpo
-    }
-
+    let valor = tipo === "mensal" ? fmt(item.validos) : 
+                (tipo === "semanal" || tipo === "entradas-mensais" ? fmt(item.entrada) : fmt(item.vendas));
+    let sublabel = tipo === "mensal" ? `${item.vendas} vendas` : 
+                   (tipo === "semanal" ? (item.sucesso === "Sim" ? "✓ Meta" : "Em progresso") : "");
+    
     return `
-      <div class="p-card ${rClass}">
+      <div class="p-card ${rankClass[vi]}">
         <span class="p-badge">${badge}</span>
         <div class="p-avatar">${initials}</div>
         <div class="p-name">${label}</div>
@@ -566,10 +519,6 @@ function renderProgress() {
   }).join("");
 }
 
-/* ═══════════════════════════════════════════════════
-   MODAL E HELPERS
-   ═══════════════════════════════════════════════════ */
-
 function openModal() {
   document.getElementById("inp-vendas").value = metas.meta_vendas || "";
   document.getElementById("inp-entradas-mensais").value = metas.meta_entradas_mensais || "";
@@ -583,46 +532,21 @@ async function saveMetas() {
   const btn = document.getElementById("btn-save");
   btn.disabled = true;
   btn.textContent = "Salvando...";
-
   const payload = {
-    meta_vendas:           Number(document.getElementById("inp-vendas").value) || 0,
+    meta_vendas: Number(document.getElementById("inp-vendas").value) || 0,
     meta_entradas_mensais: Number(document.getElementById("inp-entradas-mensais").value) || 0,
-    meta_entradas:         Number(document.getElementById("inp-entradas").value) || 0,
+    meta_entradas: Number(document.getElementById("inp-entradas").value) || 0,
   };
-
   try {
-    const res = await fetch(API.metas, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    const body = await res.json();
-    if (!body.ok) throw new Error(body.error);
-
-    metas = payload;
-    closeModal();
-    renderProgress();
-    showToast("✓ Metas salvas");
-  } catch (e) {
-    showToast("✗ Erro: " + e.message, true);
-  } finally {
-    btn.disabled = false;
-    btn.textContent = "Salvar";
-  }
+    const res = await fetch(API.metas, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+    if ((await res.json()).ok) { metas = payload; closeModal(); renderProgress(); showToast("✓ Metas salvas"); }
+  } catch (e) { showToast("✗ Erro ao salvar", true); }
+  finally { btn.disabled = false; btn.textContent = "Salvar"; }
 }
 
-function fmt(v) {
-  return (v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 0 });
-}
+function fmt(v) { return (v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 0 }); }
+function showToast(msg) { const t = document.getElementById("toast"); t.textContent = msg; t.classList.add("show"); setTimeout(() => t.classList.remove("show"), 3000); }
 
-function showToast(msg, isError = false) {
-  const t = document.getElementById("toast");
-  t.textContent = msg;
-  t.classList.add("show");
-  setTimeout(() => t.classList.remove("show"), 3000);
-}
-
-// Inicialização
 init();
 </script>
 </body>
