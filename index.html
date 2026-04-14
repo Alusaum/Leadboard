@@ -595,17 +595,16 @@ function parseUnicaAba(rows) {
   /* 2. RANKING CAMPANHA MENSAL (EQUIPES) */
   const equipeCols = keys.filter(k => k.toLowerCase().includes("equipe"));
   const kEquipeMensal = equipeCols[0];
-  const kVendasEquipe = keys.find(k => k.toLowerCase() === "vendas") || findKey(keys, "vendas");
-  const kVendasValidas = findKey(keys, "vendas v");
+  // Captura a coluna exata de "Vendas" para as equipes
+  const kVendasBrutas = keys.find(k => k.toLowerCase() === "vendas");
 
   const equipes = clean
     .map(r => ({
       equipe:    r[kEquipeMensal]?.trim() || "—",
-      validadas: parseMoeda(r[kVendasValidas]),
-      vendas:    parseMoeda(r[kVendasEquipe]),
+      vendas:    parseMoeda(r[kVendasBrutas]), 
     }))
-    .filter(r => r.validadas > 0)
-    .sort((a, b) => b.validadas - a.validadas)
+    .filter(r => r.vendas > 0)
+    .sort((a, b) => b.vendas - a.vendas) // Ordenação por vendas brutas
     .slice(0, 3);
 
   /* 3. RANKING CAMPANHA SEMANAL */
@@ -675,8 +674,9 @@ function renderPodium(id, items, tipo) {
       valor    = fmt(item.entrada);
       sublabel = item.sucesso === "Sim" ? "✓ Meta atingida" : "Em progresso";
     } else {
-      valor    = fmt(item.validadas);
-      sublabel = `total ${fmt(item.vendas)}`;
+      // Ajuste para Top Equipes: usa vendas e remove o texto "total"
+      valor    = fmt(item.vendas);
+      sublabel = ""; 
     }
 
     return `
