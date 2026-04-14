@@ -577,37 +577,38 @@ function parseUnicaAba(rows) {
     Object.values(r).some(v => v && v.trim() !== "" && v !== "#N/D")
   );
 
-  /* 1. RANKING MENSAL - Ordenar por VALOR (Vendas Válidas) */
-  const kNome = findKey(keys, "nome");
-  const kValidos = findKey(keys, "valores v"); 
-  const kVendas = findKey(keys, "vendas");
+  /* 1. RANKING MENSAL - Atualizado conforme imagem */
+  const kNome = findKey(keys, "vendedor");      // Busca "Vendedor"
+  const kTotais = findKey(keys, "valores totais"); // Busca "Valores totais"
+  const kPontos = findKey(keys, "pontos");      // Busca "Pontos" (Quantidade)
 
   const mensal = clean
     .map(r => ({
       nome:    r[kNome]?.trim() || "—",
-      vendas:  Number(r[kVendas]) || 0,
-      validos: parseMoeda(r[kValidos]),
+      vendas:  Number(r[kPontos]) || 0,         // Agora usa a coluna Pontos
+      validos: parseMoeda(r[kTotais]),          // Agora usa Valores totais
     }))
     .filter(r => r.validos > 0)
-    .sort((a, b) => b.validos - a.validos) // ORDENAÇÃO DECRESCENTE POR VALOR
-    .slice(0, 3); // PEGA OS 3 PRIMEIROS
+    .sort((a, b) => b.validos - a.validos)      // Ordena pelo R$ total
+    .slice(0, 3);
 
-  /* 2. RANKING CAMPANHA MENSAL (EQUIPES) - Ordenar por VALOR */
+  /* 2. RANKING CAMPANHA MENSAL (EQUIPES) */
   const equipeCols = keys.filter(k => k.toLowerCase().includes("equipe"));
   const kEquipeMensal = equipeCols[0];
-  const kVendasEquipe = keys.find(k => k.toLowerCase().includes("vendas v") || k.toLowerCase().includes("vendas_v"));
+  const kVendasEquipe = keys.find(k => k.toLowerCase() === "vendas") || findKey(keys, "vendas");
+  const kVendasValidas = findKey(keys, "vendas v");
 
   const equipes = clean
     .map(r => ({
       equipe:    r[kEquipeMensal]?.trim() || "—",
-      validadas: parseMoeda(r[kVendasEquipe]),
-      vendas:    parseMoeda(r[keys.find(k => k.toLowerCase() === "vendas")]),
+      validadas: parseMoeda(r[kVendasValidas]),
+      vendas:    parseMoeda(r[kVendasEquipe]),
     }))
     .filter(r => r.validadas > 0)
-    .sort((a, b) => b.validadas - a.validadas) // QUEM VENDEU MAIS SOBE
+    .sort((a, b) => b.validadas - a.validadas)
     .slice(0, 3);
 
-  /* 3. RANKING CAMPANHA SEMANAL - Ordenar por ENTRADAS */
+  /* 3. RANKING CAMPANHA SEMANAL */
   const kEquipeSemanal = equipeCols[1] || equipeCols[0];
   const kEntrada = findKey(keys, "entrada");
   const kSucesso = findKey(keys, "sucesso");
@@ -619,11 +620,12 @@ function parseUnicaAba(rows) {
       sucesso: (r[kSucesso] ?? "").trim(),
     }))
     .filter(r => r.entrada > 0)
-    .sort((a, b) => b.entrada - a.entrada) // ORDENA POR ENTRADA EM R$
+    .sort((a, b) => b.entrada - a.entrada)
     .slice(0, 3);
 
-  /* CÁLCULO DE TOTAIS (Para as barras de progresso) */
-  totais.vendas = clean.reduce((s, r) => s + parseMoeda(r[kValidos]), 0);
+  /* CÁLCULO DE TOTAIS PARA AS BARRAS DE PERFORMANCE */
+  // Soma os "Valores totais" de todos os vendedores para a meta de vendas
+  totais.vendas = clean.reduce((s, r) => s + parseMoeda(r[kTotais]), 0);
   totais.entradas = clean.reduce((s, r) => s + parseMoeda(r[kEntrada]), 0);
 
   return { mensal, semanal, equipes };
