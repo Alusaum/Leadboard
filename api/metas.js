@@ -49,11 +49,11 @@ export default async function handler(req) {
     try { body = await req.json(); } catch { return json({ error: "Body JSON inválido" }, 400); }
 
     const payload = {
-      id:            1,
-      meta_vendas:   Number(body.meta_vendas)   || 0,
-      meta_entradas: Number(body.meta_entradas) || 0,
-      meta_equipes:  Number(body.meta_equipes)  || 0,
-      updated_at:    new Date().toISOString(),
+      id: 1,
+      meta_vendas:           Number(body.meta_vendas) || 0,
+      meta_entradas:         Number(body.meta_entradas) || 0,
+      meta_entradas_mensais: Number(body.meta_entradas_mensais) || 0, // Novo campo
+      updated_at:            new Date().toISOString(),
     };
 
     const res = await fetch(`${base}/rest/v1/${TABLE}`, {

@@ -392,14 +392,18 @@
   <div class="modal">
     <div class="modal-title">Definir Metas</div>
     <div class="modal-desc">As metas ficam centralizadas e valem para todos os dispositivos.</div>
-    <div class="field">
-      <label>Meta de Vendas Mensais (R$)</label>
-      <input type="number" id="inp-vendas" placeholder="Ex: 300000">
-    </div>
-    <div class="field">
-      <label>Meta de Entradas Semanais (R$)</label>
-      <input type="number" id="inp-entradas" placeholder="Ex: 60000">
-    </div>
+      <div class="field">
+        <label>Meta de Vendas Mensais (R$)</label>
+        <input type="number" id="inp-vendas" placeholder="Ex: 300000">
+      </div>
+      <div class="field">
+        <label>Meta de Entradas Mensais (R$)</label>
+        <input type="number" id="inp-entradas-mensais" placeholder="Ex: 100000">
+      </div>
+      <div class="field">
+        <label>Meta de Entradas Semanais (R$)</label>
+        <input type="number" id="inp-entradas" placeholder="Ex: 60000">
+      </div>
     <div class="modal-actions">
       <button class="btn-cancel" onclick="closeModal()">Cancelar</button>
       <button class="btn-save" id="btn-save" onclick="saveMetas()">Salvar</button>
@@ -561,35 +565,28 @@ async function loadSheets() {
 */
 
 /* Encontra a chave real num objeto que contém o texto buscado */
-function findKey(keys, search) {
-  const s = search.toLowerCase();
-  return keys.find(k => k.toLowerCase().includes(s)) ?? null;
-}
-
-/* Caso tudo esteja na mesma aba "Ranking" (como no print) */
 function parseUnicaAba(rows) {
   if (!rows || rows.length === 0) return { mensal: [], semanal: [], equipes: [] };
 
   const keys = Object.keys(rows[0]);
-  
-  // Limpeza de dados nulos ou vazios
-  const clean = rows.filter(r => 
-    Object.values(r).some(v => v && v.trim() !== "" && v !== "#N/D")
-  );
+  const clean = rows.filter(r => Object.values(r).some(v => v && v.trim() !== "" && v !== "#N/D"));
 
-  /* 1. RANKING MENSAL - Atualizado conforme imagem */
-  const kNome = findKey(keys, "vendedor");      // Busca "Vendedor"
-  const kTotais = findKey(keys, "valores totais"); // Busca "Valores totais"
-  const kPontos = findKey(keys, "pontos");      // Busca "Pontos" (Quantidade)
+  // Mapeamento de Chaves baseada no print
+  const kNome = findKey(keys, "vendedor");
+  const kValidos = findKey(keys, "valores válidos"); // Revertido para Válidos
+  const kPontos = findKey(keys, "pontos");
+  const kEntradaMensal = keys.find(k => k.toLowerCase() === "entrada"); // 1ª ocorrência (Mensal)
+  const kEntradaSemanal = keys.find(k => k.toLowerCase() === "entrada_2") || kEntradaMensal; // 2ª ocorrência (Semanal)
 
+  /* 1. RANKING MENSAL */
   const mensal = clean
     .map(r => ({
       nome:    r[kNome]?.trim() || "—",
-      vendas:  Number(r[kPontos]) || 0,         // Agora usa a coluna Pontos
-      validos: parseMoeda(r[kTotais]),          // Agora usa Valores totais
+      vendas:  Number(r[kPontos]) || 0,
+      validos: parseMoeda(r[kValidos]), 
     }))
     .filter(r => r.validos > 0)
-    .sort((a, b) => b.validos - a.validos)      // Ordena pelo R$ total
+    .sort((a, b) => b.validos - a.validos)
     .slice(0, 3);
 
   /* 2. RANKING CAMPANHA MENSAL (EQUIPES) */
@@ -623,11 +620,12 @@ function parseUnicaAba(rows) {
     .slice(0, 3);
 
   /* CÁLCULO DE TOTAIS PARA AS BARRAS DE PERFORMANCE */
-  // Soma os "Valores totais" de todos os vendedores para a meta de vendas
-  totais.vendas = clean.reduce((s, r) => s + parseMoeda(r[kTotais]), 0);
-  totais.entradas = clean.reduce((s, r) => s + parseMoeda(r[kEntrada]), 0);
+  totais.vendas = clean.reduce((s, r) => s + parseMoeda(r[kValidos]), 0);
+  totais.entradasMensais = clean.reduce((s, r) => s + parseMoeda(r[kEntradaMensal]), 0);
+  totais.entradas = clean.reduce((s, r) => s + parseMoeda(r[kEntradaSemanal]), 0);
 
   return { mensal, semanal, equipes };
+
 }
 
 /* Converte "R$ 39.000,00" → 39000 */
@@ -694,15 +692,14 @@ function renderProgress() {
   const wrap = document.getElementById("progress-wrap");
 
   const items = [
-    { label: "Vendas Mensais",    atual: totais.vendas,   meta: metas.meta_vendas,   cor: "c-gold" },
-    { label: "Entradas Semanais", atual: totais.entradas, meta: metas.meta_entradas, cor: "c-blue" },
+    { label: "Vendas Mensais",    atual: totais.vendas,          meta: metas.meta_vendas,           cor: "c-gold" },
+    { label: "Entradas Mensais",   atual: totais.entradasMensais, meta: metas.meta_entradas_mensais,  cor: "c-green" },
+    { label: "Entradas Semanais", atual: totais.entradas,        meta: metas.meta_entradas,         cor: "c-blue" }
   ];
 
   wrap.innerHTML = items.map(({ label, atual, meta, cor }) => {
-    const pct  = meta > 0 ? Math.min(100, Math.round((atual / meta) * 100)) : 0;
-    const vals = meta > 0
-      ? `${fmt(atual)} / ${fmt(meta)}`
-      : `${fmt(atual)} — meta não definida`;
+    const pct = meta > 0 ? Math.min(100, Math.round((atual / meta) * 100)) : 0;
+    const vals = meta > 0 ? `${fmt(atual)} / ${fmt(meta)}` : `${fmt(atual)} — s/ meta`;
 
     return `
       <div class="prog-item">
@@ -724,7 +721,8 @@ function renderProgress() {
    MODAL
    ═══════════════════════════════════════════════════ */
 function openModal() {
-  document.getElementById("inp-vendas").value   = metas.meta_vendas   || "";
+  document.getElementById("inp-vendas").value = metas.meta_vendas || "";
+  document.getElementById("inp-entradas-mensais").value = metas.meta_entradas_mensais || "";
   document.getElementById("inp-entradas").value = metas.meta_entradas || "";
   document.getElementById("overlay").classList.add("open");
 }
@@ -742,9 +740,9 @@ async function saveMetas() {
   btn.textContent = "Salvando...";
 
   const payload = {
-    meta_vendas:   Number(document.getElementById("inp-vendas").value)   || 0,
-    meta_entradas: Number(document.getElementById("inp-entradas").value) || 0,
-    meta_equipes:  0,
+    meta_vendas:           Number(document.getElementById("inp-vendas").value) || 0,
+    meta_entradas_mensais: Number(document.getElementById("inp-entradas-mensais").value) || 0,
+    meta_entradas:         Number(document.getElementById("inp-entradas").value) || 0,
   };
 
   try {
