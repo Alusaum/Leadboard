@@ -105,6 +105,11 @@
       padding: 20px 32px;
     }
 
+    /* Adicione isso junto aos outros estilos de .panel */
+    .panel-full {
+      grid-column: span 2;
+    }
+
     .panel {
       background: var(--surface);
       border: 1px solid var(--border);
@@ -341,7 +346,7 @@
     <div class="podium" id="pod-entradas-mensais"></div>
   </div>
 
-  <div class="panel">
+  <div class="panel panel panel-full">
     <div class="panel-eyebrow">Performance</div>
     <div class="panel-title">Progresso das Metas</div>
     <div class="progress-grid" id="progress-wrap"></div>
