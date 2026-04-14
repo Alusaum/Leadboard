@@ -415,171 +415,89 @@
 
 <script>
 /* ═══════════════════════════════════════════════════
-   CONFIG — altere conforme seu deploy
+   CONFIGURAÇÃO
    ═══════════════════════════════════════════════════ */
 const API = {
-  // Rota relativa funciona tanto local quanto em produção na Vercel
   sheets: "/api/sheets",
   metas:  "/api/metas",
 };
 
-/* IDs de aba do Google Sheets (gid=)
-   Para descobrir: abra a aba na planilha → veja a URL → #gid=NÚMERO
-   Exemplo: https://docs.google.com/spreadsheets/d/SEU_ID/edit#gid=0
-*/
 const GID = {
-  mensal:  "0",   // ← substitua pelo gid real da aba Ranking Mensal
-  semanal: "0",   // ← substitua pelo gid real da aba Campanha Semanal
-  equipes: "0",   // ← substitua pelo gid real da aba Campanha Mensal
-};
-
-/* Índices de coluna no CSV (0-based) de cada aba
-   Ajuste conforme as colunas reais da sua planilha publicada */
-const COLS = {
-  mensal:  { nome: 0, vendas: 1, validos: 2, posicao: 3 },
-  semanal: { equipe: 0, vendas: 1, entrada: 2, sucesso: 3, posicao: 4 },
-  equipes: { equipe: 0, vendas: 1, validadas: 2, posicao: 3 },
+  mensal: "0", // Ajuste para o GID real da sua planilha
 };
 
 /* ═══════════════════════════════════════════════════
-   STATE
+   ESTADO GLOBAL
    ═══════════════════════════════════════════════════ */
-let metas = { meta_vendas: 0, meta_entradas: 0, meta_equipes: 0 };
+let metas = { meta_vendas: 0, meta_entradas: 0, meta_entradas_mensais: 0 };
 let dados = { mensal: [], semanal: [], equipes: [] };
-let totais = { vendas: 0, entradas: 0 }; // totais calculados de TODOS os registros do CSV
+let totais = { vendas: 0, entradas: 0, entradasMensais: 0 };
 
 /* ═══════════════════════════════════════════════════
-   FETCH SHEETS
-   ══════════════════════════════════════════════════ */
+   LÓGICA DE CARREGAMENTO
+   ═══════════════════════════════════════════════════ */
 
-// 1. Busca os dados da planilha via API (que você já tem no HTML)
-// 2. Parseia o CSV usando sua lógica de parseUnicaAba (ajustada para lidar com colunas dinâmicas)
-// 3. Atualiza o estado global "dados" e "totais"
-// 4. Atualiza o timestamp de "Última atualização"
-// 5. Chama o render() para atualizar a tela
-// 6. Repete a cada 30 segundos
-async function loadSheets() {
-  try {
-    // Adicionamos timestamp também na chamada da SUA api para garantir que a Vercel não segure o cache
-    const response = await fetch(`/api/sheets?gid=${GID.mensal}&t=${Date.now()}`, {
-      cache: 'no-store' // Força o navegador a não usar cache
-    });
-
-    const body = await response.json();
-
-    if (body.ok) {
-      // Aqui usamos sua lógica de parseUnicaAba que você já tem no HTML
-      dados = parseUnicaAba(body.data); 
-      
-      document.getElementById("last-update").textContent =
-        "Atualizado às " + new Date().toLocaleTimeString("pt-BR", { 
-          hour: "2-digit", 
-          minute: "2-digit", 
-          second: "2-digit" // Segundos ajudam a ver se a TV está "viva"
-        });
-      
-      render(); // Chama o render que desenha o pódio e as barras
-    }
-  } catch (e) {
-    console.error("Erro na sincronização:", e);
-  }
-}
-
-// Inicialização e Loop
-function init() {
-  loadMetas(); // Carrega metas do Supabase
-  loadSheets(); // Primeira carga
-  
-  // Loop de 30 segundos
+async function init() {
+  await loadMetas();
+  await loadSheets();
+  // Loop de atualização (30 segundos)
   setInterval(loadSheets, 30000);
 }
 
-init();
-
-/* ═══════════════════════════════════════════════════
-   INIT
-   ═══════════════════════════════════════════════════ */
-async function init() {
-  await Promise.all([loadMetas(), loadSheets()]);
-  render();
-  // Atualiza planilha a cada 30 segundos
-  setInterval(async () => { await loadSheets(); render(); }, 30_000);
-}
-
-/* ═══════════════════════════════════════════════════
-   FETCH METAS
-   ═══════════════════════════════════════════════════ */
 async function loadMetas() {
   try {
-    const res  = await fetch(API.metas);
+    const res = await fetch(API.metas);
     const body = await res.json();
     if (body.ok) metas = body.data;
   } catch (e) {
-    console.warn("Metas indisponíveis, usando padrão:", e);
+    console.warn("Metas indisponíveis:", e);
   }
-}
-
-/* ═══════════════════════════════════════════════════
-   FETCH SHEETS
-   ═══════════════════════════════════════════════════ */
-async function fetchAba(gid) {
-  const res  = await fetch(`${API.sheets}?gid=${gid}`);
-  const body = await res.json();
-  return body.ok ? body.data : [];
 }
 
 async function loadSheets() {
   try {
-    /* Se todas as abas tiverem o mesmo gid, busca uma vez só */
-    if (GID.mensal === GID.semanal && GID.semanal === GID.equipes) {
-      const raw = await fetchAba(GID.mensal);
-      dados = parseUnicaAba(raw);
-    } else {
-      const [rawMensal, rawSemanal, rawEquipes] = await Promise.all([
-        fetchAba(GID.mensal),
-        fetchAba(GID.semanal),
-        fetchAba(GID.equipes),
-      ]);
-      dados.mensal  = parseMensal(rawMensal);
-      dados.semanal = parseSemanal(rawSemanal);
-      dados.equipes = parseEquipes(rawEquipes);
-    }
+    // Cache busting com timestamp para evitar dados antigos da Vercel/Google
+    const res = await fetch(`${API.sheets}?gid=${GID.mensal}&t=${Date.now()}`, { cache: 'no-store' });
+    const body = await res.json();
 
-    document.getElementById("last-update").textContent =
-      "Atualizado às " + new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+    if (body.ok) {
+      parseUnicaAba(body.data);
+      render();
+      document.getElementById("last-update").textContent =
+        "Atualizado às " + new Date().toLocaleTimeString("pt-BR");
+    }
   } catch (e) {
-    console.error("Erro ao carregar planilha:", e);
+    console.error("Erro ao sincronizar planilha:", e);
   }
 }
 
-/* ── parsers ── */
+/* ═══════════════════════════════════════════════════
+   PARSERS (O Cérebro do Dashboard)
+   ═══════════════════════════════════════════════════ */
 
-/*
-  O CSV do Google Sheets usa a linha 1 como cabeçalho.
-  Quando há múltiplas tabelas side-by-side na mesma aba,
-  o CSV exporta TODAS as colunas em cada linha — os cabeçalhos
-  duplicados ganham sufixo automático (_1, _2...).
+// Função CRUCIAL que estava faltando no seu código
+function findKey(keys, search) {
+  const s = search.toLowerCase();
+  return keys.find(k => k.toLowerCase().includes(s)) ?? null;
+}
 
-  Estratégia: inspecionar as chaves reais do CSV e localizar
-  cada coluna pelo nome (case-insensitive, busca parcial).
-*/
-
-/* Encontra a chave real num objeto que contém o texto buscado */
 function parseUnicaAba(rows) {
-  if (!rows || rows.length === 0) return { mensal: [], semanal: [], equipes: [] };
+  if (!rows || rows.length === 0) return;
 
   const keys = Object.keys(rows[0]);
   const clean = rows.filter(r => Object.values(r).some(v => v && v.trim() !== "" && v !== "#N/D"));
 
-  // Mapeamento de Chaves baseada no print
+  // Mapeamento de Colunas baseado no print enviado
   const kNome = findKey(keys, "vendedor");
-  const kValidos = findKey(keys, "valores válidos"); // Revertido para Válidos
+  const kValidos = findKey(keys, "valores válidos"); 
   const kPontos = findKey(keys, "pontos");
-  const kEntradaMensal = keys.find(k => k.toLowerCase() === "entrada"); // 1ª ocorrência (Mensal)
-  const kEntradaSemanal = keys.find(k => k.toLowerCase() === "entrada_2") || kEntradaMensal; // 2ª ocorrência (Semanal)
+  const kEntradaMensal = keys.find(k => k.toLowerCase() === "entrada"); 
+  const kEntradaSemanal = keys.find(k => k.toLowerCase() === "entrada_2") || kEntradaMensal;
+  const kEquipe = findKey(keys, "equipe");
+  const kVendasEquipe = keys.find(k => k.toLowerCase() === "vendas");
 
-  /* 1. RANKING MENSAL */
-  const mensal = clean
+  /* 1. RANKING MENSAL (Vendedores) */
+  dados.mensal = clean
     .map(r => ({
       nome:    r[kNome]?.trim() || "—",
       vendas:  Number(r[kPontos]) || 0,
@@ -589,54 +507,43 @@ function parseUnicaAba(rows) {
     .sort((a, b) => b.validos - a.validos)
     .slice(0, 3);
 
-  /* 2. RANKING CAMPANHA MENSAL (EQUIPES) */
-  const equipeCols = keys.filter(k => k.toLowerCase().includes("equipe"));
-  const kEquipeMensal = equipeCols[0];
-  // Captura a coluna exata de "Vendas" para as equipes
-  const kVendasBrutas = keys.find(k => k.toLowerCase() === "vendas");
-
-  const equipes = clean
+  /* 2. RANKING EQUIPES */
+  dados.equipes = clean
     .map(r => ({
-      equipe:    r[kEquipeMensal]?.trim() || "—",
-      vendas:    parseMoeda(r[kVendasBrutas]), 
+      equipe: r[kEquipe]?.trim() || "—",
+      vendas: parseMoeda(r[kVendasEquipe]), 
     }))
     .filter(r => r.vendas > 0)
-    .sort((a, b) => b.vendas - a.vendas) // Ordenação por vendas brutas
+    .sort((a, b) => b.vendas - a.vendas)
     .slice(0, 3);
 
-  /* 3. RANKING CAMPANHA SEMANAL */
-  const kEquipeSemanal = equipeCols[1] || equipeCols[0];
-  const kEntrada = findKey(keys, "entrada");
+  /* 3. RANKING SEMANAL */
   const kSucesso = findKey(keys, "sucesso");
-
-  const semanal = clean
+  dados.semanal = clean
     .map(r => ({
-      equipe:  r[kEquipeSemanal]?.trim() || "—",
-      entrada: parseMoeda(r[kEntrada]),
+      equipe:  r[kEquipe]?.trim() || "—",
+      entrada: parseMoeda(r[kEntradaSemanal]),
       sucesso: (r[kSucesso] ?? "").trim(),
     }))
     .filter(r => r.entrada > 0)
     .sort((a, b) => b.entrada - a.entrada)
     .slice(0, 3);
 
-  /* CÁLCULO DE TOTAIS PARA AS BARRAS DE PERFORMANCE */
+  /* TOTAIS PARA AS BARRAS */
   totais.vendas = clean.reduce((s, r) => s + parseMoeda(r[kValidos]), 0);
   totais.entradasMensais = clean.reduce((s, r) => s + parseMoeda(r[kEntradaMensal]), 0);
   totais.entradas = clean.reduce((s, r) => s + parseMoeda(r[kEntradaSemanal]), 0);
-
-  return { mensal, semanal, equipes };
-
 }
 
-/* Converte "R$ 39.000,00" → 39000 */
 function parseMoeda(v) {
   if (!v) return 0;
   return Number(String(v).replace(/[R$\s.]/g, "").replace(",", ".")) || 0;
 }
 
 /* ═══════════════════════════════════════════════════
-   RENDER
+   INTERFACE E RENDERIZAÇÃO
    ═══════════════════════════════════════════════════ */
+
 function render() {
   renderPodium("pod-mensal",  dados.mensal,  "mensal");
   renderPodium("pod-semanal", dados.semanal, "semanal");
@@ -644,37 +551,32 @@ function render() {
   renderProgress();
 }
 
-const RANK_LABELS = ["#1", "#2", "#3"];
-const RANK_ORDER  = [1, 0, 2]; // posição visual: 2°, 1°, 3°
-
 function renderPodium(id, items, tipo) {
   const el = document.getElementById(id);
   if (!items || items.length === 0) {
-    el.innerHTML = `<div style="grid-column:1/-1;text-align:center;color:var(--muted);padding:24px;font-size:12px;font-family:'DM Mono',monospace">Sem dados</div>`;
+    el.innerHTML = `<div class="error-msg">Sem dados</div>`;
     return;
   }
 
-  /* Reordena visualmente: 2°, 1°, 3° */
   const ordered = [items[1], items[0], items[2]].filter(Boolean);
   const rankClass = ["rank-2", "rank-1", "rank-3"];
 
   el.innerHTML = ordered.map((item, vi) => {
     const rClass = rankClass[vi];
     const badge  = vi === 1 ? "#1" : vi === 0 ? "#2" : "#3";
-    const initials = (item.nome || item.equipe || "?").split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
     const label  = item.nome || item.equipe || "—";
+    const initials = label.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
+    
     let valor, sublabel;
-
     if (tipo === "mensal") {
-      valor    = fmt(item.validos);
+      valor = fmt(item.validos);
       sublabel = `${item.vendas} vendas`;
     } else if (tipo === "semanal") {
-      valor    = fmt(item.entrada);
-      sublabel = item.sucesso === "Sim" ? "✓ Meta atingida" : "Em progresso";
+      valor = fmt(item.entrada);
+      sublabel = item.sucesso === "Sim" ? "✓ Meta" : "Em progresso";
     } else {
-      // Ajuste para Top Equipes: usa vendas e remove o texto "total"
-      valor    = fmt(item.vendas);
-      sublabel = ""; 
+      valor = fmt(item.vendas);
+      sublabel = "";
     }
 
     return `
@@ -690,7 +592,6 @@ function renderPodium(id, items, tipo) {
 
 function renderProgress() {
   const wrap = document.getElementById("progress-wrap");
-
   const items = [
     { label: "Vendas Mensais",    atual: totais.vendas,          meta: metas.meta_vendas,           cor: "c-gold" },
     { label: "Entradas Mensais",   atual: totais.entradasMensais, meta: metas.meta_entradas_mensais,  cor: "c-green" },
@@ -699,40 +600,32 @@ function renderProgress() {
 
   wrap.innerHTML = items.map(({ label, atual, meta, cor }) => {
     const pct = meta > 0 ? Math.min(100, Math.round((atual / meta) * 100)) : 0;
-    const vals = meta > 0 ? `${fmt(atual)} / ${fmt(meta)}` : `${fmt(atual)} — s/ meta`;
-
     return `
       <div class="prog-item">
         <div class="prog-head">
           <span class="prog-label">${label}</span>
           <div class="prog-right">
             <div class="prog-pct ${cor}">${pct}%</div>
-            <div class="prog-vals">${vals}</div>
+            <div class="prog-vals">${fmt(atual)} / ${fmt(meta)}</div>
           </div>
         </div>
-        <div class="prog-track">
-          <div class="prog-fill ${cor}" style="width:${pct}%"></div>
-        </div>
+        <div class="prog-track"><div class="prog-fill ${cor}" style="width:${pct}%"></div></div>
       </div>`;
   }).join("");
 }
 
 /* ═══════════════════════════════════════════════════
-   MODAL
+   MODAL E HELPERS
    ═══════════════════════════════════════════════════ */
+
 function openModal() {
   document.getElementById("inp-vendas").value = metas.meta_vendas || "";
   document.getElementById("inp-entradas-mensais").value = metas.meta_entradas_mensais || "";
   document.getElementById("inp-entradas").value = metas.meta_entradas || "";
   document.getElementById("overlay").classList.add("open");
 }
-function closeModal() {
-  document.getElementById("overlay").classList.remove("open");
-}
 
-document.getElementById("overlay").addEventListener("click", e => {
-  if (e.target === e.currentTarget) closeModal();
-});
+function closeModal() { document.getElementById("overlay").classList.remove("open"); }
 
 async function saveMetas() {
   const btn = document.getElementById("btn-save");
@@ -746,7 +639,7 @@ async function saveMetas() {
   };
 
   try {
-    const res  = await fetch(API.metas, {
+    const res = await fetch(API.metas, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
@@ -757,18 +650,15 @@ async function saveMetas() {
     metas = payload;
     closeModal();
     renderProgress();
-    showToast("✓ Metas salvas para todos os dispositivos");
+    showToast("✓ Metas salvas");
   } catch (e) {
-    showToast("✗ Erro ao salvar: " + e.message, true);
+    showToast("✗ Erro: " + e.message, true);
   } finally {
     btn.disabled = false;
     btn.textContent = "Salvar";
   }
 }
 
-/* ═══════════════════════════════════════════════════
-   HELPERS
-   ═══════════════════════════════════════════════════ */
 function fmt(v) {
   return (v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 0 });
 }
@@ -776,15 +666,11 @@ function fmt(v) {
 function showToast(msg, isError = false) {
   const t = document.getElementById("toast");
   t.textContent = msg;
-  t.style.borderColor = isError ? "rgba(239,68,68,0.3)" : "rgba(34,197,94,0.3)";
-  t.style.color = isError ? "#ef4444" : "var(--green)";
   t.classList.add("show");
   setTimeout(() => t.classList.remove("show"), 3000);
 }
 
-/* ═══════════════════════════════════════════════════
-   BOOT
-   ═══════════════════════════════════════════════════ */
+// Inicialização única
 init();
 </script>
 </body>
