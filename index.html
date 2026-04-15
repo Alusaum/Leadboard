@@ -417,11 +417,14 @@ function parseUnicaAba(rows) {
   // MAPEAMENTO DINÂMICO
   const kVendedor = findKey(keys, "vendedor");
   const kValidos = findKey(keys, "valores válidos");
+  // ADICIONE ESTA LINHA:
+  const kTotais = findKey(keys, "valores totais"); 
+  
   const kPontos = findKey(keys, "pontos");
   const kEntradaMensal = keys.find(k => k.toLowerCase() === "entrada"); 
   const kEntradaSemanal = keys.find(k => k.toLowerCase() === "entrada_2") || kEntradaMensal;
   const kEquipe = findKey(keys, "equipe");
-  const kVendasValidasEquipe = findKey(keys, "vendas válidas"); 
+  const kVendasValidasEquipe = findKey(keys, "vendas válidas");
 
   /* 1. RANKING MENSAL (Vendedores) */
   dados.mensal = clean.map(r => ({
@@ -451,11 +454,11 @@ function parseUnicaAba(rows) {
   })).filter(r => r.entrada > 0).sort((a, b) => b.entrada - a.entrada).slice(0, 3);
 
   // TOTAIS PARA AS 3 BARRAS
-  totais.vendas = clean.reduce((s, r) => s + parseMoeda(r[kValidos]), 0);
+  totais.vendas = clean.reduce((s, r) => s + parseMoeda(r[kTotais]), 0);
+  
   totais.entradasMensais = clean.reduce((s, r) => s + parseMoeda(r[kEntradaMensal]), 0);
   totais.entradas = clean.reduce((s, r) => s + parseMoeda(r[kEntradaSemanal]), 0);
 }
-
 function parseMoeda(v) {
   if (!v) return 0;
   return Number(String(v).replace(/[R$\s.]/g, "").replace(",", ".")) || 0;
